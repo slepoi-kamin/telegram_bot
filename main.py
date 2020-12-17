@@ -8,7 +8,6 @@ from base import bot
 from conf import admin_id, WEBHOOK_PATH, WEBHOOK_URL, WEBAPP_HOST, WEBAPP_PORT
 from handlers import dp
 
-
 async def on_startup(dp):
     await bot.set_webhook(WEBHOOK_URL)
     await bot.send_message(admin_id, "Я запущен!")

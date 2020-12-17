@@ -3,8 +3,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
 
 from base import bot, dp, user_db
-from buttons import buttons
-from aiogram import Bot
+from keyboards import keyboards
 
 @dp.channel_post_handler()
 async def echo3(text):
@@ -23,10 +22,6 @@ async def echo3(text):
                                    '<b>ERROR: Wrong tr_view format</b>',
                                    parse_mode=types.ParseMode.HTML)
 
-
-@dp.errors_handler()
-async def echo8(a1, a2):
-    await bot.send_message(564514817, a1.message.text)
 
 
 @dp.message_handler(commands=['gen'])
@@ -50,9 +45,12 @@ async def generate(message: types.Message):
 async def starthelp(message: types.Message):
     message_text = '/gen - Генерация выражения для создания оповещения в TW\n' \
                    '/help - Справка по командам бота\n' \
-                   '/session - Создание сесии для API'
+                   '/session - Создание сесии для API\n' \
+                   '/start_trade - Начать торговлю\n' \
+                   '/stop_trade - Закончить торговлю\n' \
+                   '/session - Поключить/добавить API'
 
-    await bot.send_message(message.chat.id, message_text)
+    await bot.send_message(message.chat.id, message_text, reply_markup=keyboards['common_keyboard'])
 
 
 class API(StatesGroup):
@@ -61,30 +59,17 @@ class API(StatesGroup):
     s_key = State()
 
 
-class TradeState(StatesGroup):
-    trade = State()
-
-
-class RunningSessions(StatesGroup):
-    sessions = State()
-
-
 @dp.message_handler(commands='session', state='*')
-async def api_step_1(message: types.Message, state: FSMContext):
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,
-                                         one_time_keyboard=True)
-    keyboard.row(buttons['binance'], buttons['bitmex'])
-    await message.answer("Выберите API:", reply_markup=keyboard)
-    # await API.api.set()
+async def api_step_1(message: types.Message):
+    await message.answer("Выберите API:", reply_markup=keyboards['api_keyboard'])
     await API.next()
-    keyboard.clean()
 
 
 @dp.message_handler(state=API.api)
 async def api_step_2(message: types.Message, state: FSMContext):
 
     await state.update_data(api=message.text.lower())
-    await message.answer("Ключ API:")
+    await message.answer("Ключ API:", reply_markup=types.ReplyKeyboardRemove())
     await API.next()
 
 
@@ -105,7 +90,7 @@ async def api_step_4(message: types.Message, state: FSMContext):
                            api_data['api_key'],
                            api_data['s_key'])
     await state.finish()
-
+    await message.answer('⌨', reply_markup=keyboards['common_keyboard'])
 
 
 @dp.message_handler(commands='start_trade')
@@ -132,6 +117,9 @@ async def echo(message: types.Message):
     # or reply INTO webhook
     # return SendMessage(message.chat.id, message.text)
 
-    await bot.send_message(message.chat.id, 'Ты  полный лох',
-                           reply_markup=types.ReplyKeyboardRemove())
+    await bot.send_message(message.chat.id, 'Ты  полный лох')
     # return SendMessage(message.chat.id, 'Ты лох')
+
+@dp.errors_handler()
+async def echo8(a1, a2):
+    await bot.send_message(564514817, a1.message.text)
