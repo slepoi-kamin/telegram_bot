@@ -108,9 +108,7 @@ async def api_step_4(message: types.Message, state: FSMContext):
 
     await state.update_data(s_key=message.text.lower())
     api_data = await state.get_data()
-    user_db.create_session(message.chat.id,
-                           message.chat.username,
-                           api_data['api'],
+    user_db.create_session(api_data['api'],
                            api_data['api_key'],
                            api_data['s_key'])
     user_db.save()
