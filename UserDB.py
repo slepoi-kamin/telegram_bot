@@ -3,6 +3,7 @@ from pathlib import Path
 import pickle
 import numpy as np
 import bnnc
+from aiogram import types
 
 
 class UserDB(pd.DataFrame):
