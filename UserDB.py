@@ -2,8 +2,10 @@ import pandas as pd
 from pathlib import Path
 import pickle
 import numpy as np
+from awaits.awaitable import awaitable
+
 import bnnc
-from aiogram import types
+from aiogram import types, Bot
 
 
 class UserDB(pd.DataFrame):
@@ -22,6 +24,7 @@ class UserDB(pd.DataFrame):
                      'state': []}
         pd.DataFrame.__init__(self, user_dict)
 
+    @awaitable
     def save(self):
         """
         Save database to .txt
@@ -56,6 +59,7 @@ class UserDB(pd.DataFrame):
         data = np.array(list(user_dict.values()), dtype=object)
         self.loc[ind] = data
 
+
     def get_state(self, all_users=False):
         """
         Get user state
@@ -67,42 +71,50 @@ class UserDB(pd.DataFrame):
             if self._is_userid_exists():
                 return self.loc[self['user_id'] == user_id, 'state'].values[0]
             else:
-                raise ValueError(f'There are no such user_id: |{user_id}| in database')
+                return None
+                # raise ValueError(f'There are no such user_id: |{user_id}| in database')
         else:
             return self.loc[:, ['user_id', 'username', 'state']]
 
-    def _set_state(self, state):
+    async def _set_state(self, state):
         """
         Set state for the user
         :param state:
         :return:
         """
+        bot = Bot.get_current()
+        user_id = types.User.get_current().id
         if self._is_userid_exists():
             if isinstance(state, bool):
-                self.loc[self['user_id'] == types.User.get_current().id, 'state'] = state
+                self.loc[self['user_id'] == user_id, 'state'] = state
+                await self.save()
+                text = 'Start trading' if state else 'Stop trading'
+                await bot.send_message(user_id, text)
             else:
                 raise TypeError(f'state variable should be bool, not {type(state)}')
         else:
-            print('At first you should add API')
-            # TODO: Сообщение, что надо сначала добавить API
+            # print('At first you should add API')
+            await bot.send_message(user_id, 'At first you should add API')
             pass
 
-    def set_state(self):
-        _set_state(True)
+    async def set_state(self):
+        await self._set_state(True)
 
-    def reset_state(self):
-        _set_state(False)
+    async def reset_state(self):
+        await self._set_state(False)
 
-    def _add_session(self, session):
+    async def _add_session(self, session):
         """
         Adds new session to sessions store
         :param session:
         :return:
         """
 
-        sessions = self.loc[self['user_id'] == types.User.get_current().id, 'sessions'].tolist()[0]
+        user_id = types.User.get_current().id
+        sessions = self.loc[self['user_id'] == user_id, 'sessions'].tolist()[0]
         sessions.append(session)
-        # TODO: Сообщение в телегу, что сессия добавлена
+        await self.save()
+        await Bot.get_current().send_message(user_id, 'New session added')
 
     def _is_userid_exists(self):
         """
@@ -129,7 +141,7 @@ class UserDB(pd.DataFrame):
                 return True
             return False
 
-    def _is_new_user(self):
+    async def _is_new_user(self):
         """
         Check if user is new.
         :return:
@@ -142,18 +154,15 @@ class UserDB(pd.DataFrame):
             if user_id in self['user_id'].values and username in self['username'].values:
                 return False
             elif user_id in self['user_id'].values or username in self['username'].values:
-                raise ValueError('user_id не соответствует username')
-                # TODO: Сообщение в телегу, об ошибке, убрать исключение
+                await Bot.get_current().send_message(user_id, 'ERROR: user_id don\'t match username')
             elif user_id not in self['user_id'].values and username not in self['username'].values:
-                print('New user')
                 return True
             else:
                 raise ValueError('something with user_id and username')
         else:
-            print('New user')
             return True
 
-    def create_session(self, api, api_key, s_key):
+    async def create_session(self, api, api_key, s_key):
         """
         Creates new session
         :param api:
@@ -161,18 +170,18 @@ class UserDB(pd.DataFrame):
         :param s_key:
         :return:
         """
-        if self._is_new_user():
+        if await self._is_new_user():
             self._add_user()
             session = bnnc.Session(api, api_key, s_key)
-            self._add_session(session)
+            await self._add_session(session)
         else:
             if not self._is_session_exists(api, api_key):
                 session = bnnc.Session(api, api_key, s_key)
-                self._add_session(session)
-                # TODO: Сообщение в телегу, что сессия создана
+                await self._add_session(session)
             else:
-                pass
-                # TODO: Сообщение в телегу, что такая сессия уже существует
+                bot = Bot.get_current()
+                user_id = types.User.get_current().id
+                await bot.send_message(user_id, 'Session already exists')
 
 
 if __name__ == '__main__':

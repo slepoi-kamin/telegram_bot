@@ -4,7 +4,7 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 
 from base import bot, dp, user_db
 from buttons import buttons
-
+from aiogram import Bot
 
 @dp.channel_post_handler()
 async def echo3(text):
@@ -56,7 +56,6 @@ async def starthelp(message: types.Message):
 
 
 class API(StatesGroup):
-    # zero = State(state='zeros')
     api = State()
     api_key = State()
     s_key = State()
@@ -72,14 +71,12 @@ class RunningSessions(StatesGroup):
 
 @dp.message_handler(commands='session', state='*')
 async def api_step_1(message: types.Message, state: FSMContext):
-    print(API.api)
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,
                                          one_time_keyboard=True)
     keyboard.row(buttons['binance'], buttons['bitmex'])
     await message.answer("Выберите API:", reply_markup=keyboard)
     # await API.api.set()
     await API.next()
-    await state.storage.save()
     keyboard.clean()
 
 
@@ -88,9 +85,7 @@ async def api_step_2(message: types.Message, state: FSMContext):
 
     await state.update_data(api=message.text.lower())
     await message.answer("Ключ API:")
-    # await API.api_key.set()
     await API.next()
-    await state.storage.save()
 
 
 @dp.message_handler(state=API.api_key)
@@ -98,9 +93,7 @@ async def api_step_3(message: types.Message, state: FSMContext):
 
     await state.update_data(api_key=message.text.lower())
     await message.answer("C_Ключ:")
-    # await API.s_key.set()
     await API.next()
-    await state.storage.save()
 
 
 @dp.message_handler(state=API.s_key)
@@ -108,44 +101,27 @@ async def api_step_4(message: types.Message, state: FSMContext):
 
     await state.update_data(s_key=message.text.lower())
     api_data = await state.get_data()
-    user_db.create_session(api_data['api'],
+    await user_db.create_session(api_data['api'],
                            api_data['api_key'],
                            api_data['s_key'])
-    user_db.save()
-    # TODO: создать метод фззутв для UserDB и перенести в него три последние команды, добавить сохранение
-    await message.answer("Готово")
     await state.finish()
 
-    # await RunningSessions.sessions.set()
-    # await state.update_data(sessions='session')
-    # print(await state.get_data())
-
-    await state.storage.save()
 
 
-@dp.message_handler(commands='start_trade', state='*')
-async def start_trading(message: types.Message, state: FSMContext):
-
-    if await state.get_state():
-        message_text = 'Уже торгуется...'
+@dp.message_handler(commands='start_trade')
+async def start_trading(message: types.Message):
+    state = user_db.get_state()
+    if state:
+        await message.answer('Already trading')
+    elif state is None:
+        await message.answer('At first you should add API')
     else:
-        message_text = 'Начинаю торговлю...'
-        await TradeState.trade.set()
-        user_db.set_state(message.chat.id, True)
-        user_db.save()
-        await state.storage.save()
-    await bot.send_message(message.chat.id, message_text)
+        await user_db.set_state()
 
 
-@dp.message_handler(commands='stop_trade', state=TradeState.trade)
-async def stop_trading(message: types.Message, state: FSMContext):
-
-    message_text = 'Заканчиваю торговлю...'
-    await state.finish()
-    user_db.set_state(message.chat.id, False)
-    user_db.save()
-    await state.storage.save()
-    await bot.send_message(message.chat.id, message_text)
+@dp.message_handler(commands='stop_trade')
+async def stop_trading(message: types.Message):
+    await user_db.reset_state()
 
 
 @dp.message_handler()
