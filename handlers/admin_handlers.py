@@ -20,5 +20,27 @@ async def decline_user(message: types.Message):
                                          'You will be baned for some time.',
                            reply_markup=keyboards['common_keyboard'])
     blacklist.append(int(user_id))
-    print(blacklist)
     await message.answer('The user banned.')
+
+
+@dp.message_handler(user_id=admin_id, commands=['clear_db'])
+async def add_user(message: types.Message):
+    await user_db.clear()
+
+
+@dp.message_handler(user_id=admin_id, commands=['clear_blacklist'])
+async def add_user(message: types.Message):
+    blacklist.clear()
+
+
+@dp.message_handler(user_id=admin_id, commands=['start', 'help'])
+async def starthelp(message: types.Message):
+    message_text = '/gen - Генерация выражения для создания оповещения в TW\n' \
+                   '/help - Справка по командам бота\n' \
+                   '/start_trade - Начать торговлю\n' \
+                   '/stop_trade - Закончить торговлю\n' \
+                   '/session - Поключить/добавить API\n' \
+                   '/clear_db - Отчистить базу пользователей\n' \
+                   '/clear_blacklist - Отчистить черный список\n' \
+                   '/add_user user_id username - Добавить пользователя'
+    await message.answer(message_text, reply_markup=keyboards['common_keyboard'])

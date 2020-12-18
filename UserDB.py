@@ -26,6 +26,11 @@ class UserDB(pd.DataFrame):
                      'state': []}
         pd.DataFrame.__init__(self, user_dict)
 
+    async def clear(self):
+        self._create_new()
+        await self.save()
+        await Bot.get_current().send_message(admin_id, f'The User Database have been cleared')
+
     @awaitable
     def save(self):
         """
@@ -190,16 +195,15 @@ class UserDB(pd.DataFrame):
         """
         if await self.is_new_user():
             await self.add_user()
+
+        if not self._is_session_exists(api, api_key):
             session = bnnc.Session(api, api_key, s_key)
-            await self._add_session(session)
-        else:
-            if not self._is_session_exists(api, api_key):
-                session = bnnc.Session(api, api_key, s_key)
+            if await session.is_api_correct():
                 await self._add_session(session)
-            else:
-                bot = Bot.get_current()
-                user_id = types.User.get_current().id
-                await bot.send_message(user_id, 'Session already exists')
+        else:
+            bot = Bot.get_current()
+            user_id = types.User.get_current().id
+            await bot.send_message(user_id, 'Session already exists')
 
 
 if __name__ == '__main__':
