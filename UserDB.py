@@ -7,6 +7,8 @@ from awaits.awaitable import awaitable
 import bnnc
 from aiogram import types, Bot
 
+from conf import admin_id
+
 
 class UserDB(pd.DataFrame):
     db_file = Path('user_db.txt')
@@ -43,22 +45,33 @@ class UserDB(pd.DataFrame):
         pd.DataFrame.__init__(self, pickle.load(file))
         file.close()
 
-
-    def _add_user(self):
+    async def add_user(self, user_id=None, username=None):
         """
         Add new user to the database
         :return:
         """
+        if not user_id or not username:
+            user_id, username = self._get_user()
+
+        if self._is_userid_exists():
+            await Bot.get_current().send_message(admin_id, f'ERROR: user with user_id {user_id} already exists')
+        else:
+            user_dict = {'user_id': user_id,
+                         'username': username,
+                         'sessions': bnnc.Sessions(),
+                         'state': False}
+            ind = len(self.index)
+            data = np.array(list(user_dict.values()), dtype=object)
+            self.loc[ind] = data
+            await self.save()
+            await Bot.get_current().send_message(admin_id, f'New user id: {user_id}, '
+                                                           f'name:{username} added to the database')
+
+    def _get_user(self):
         user = types.User.get_current()
-
-        user_dict = {'user_id': user.id,
-                     'username': user.username,
-                     'sessions': bnnc.Sessions(),
-                     'state': False}
-        ind = len(self.index)
-        data = np.array(list(user_dict.values()), dtype=object)
-        self.loc[ind] = data
-
+        user_id = user.id
+        username = user.username
+        return user_id, username
 
     def get_state(self, all_users=False):
         """
@@ -84,7 +97,7 @@ class UserDB(pd.DataFrame):
         """
         bot = Bot.get_current()
         user_id = types.User.get_current().id
-        if self._is_userid_exists():
+        if self._is_userid_exists() and self._is_session_exists():
             if isinstance(state, bool):
                 self.loc[self['user_id'] == user_id, 'state'] = state
                 await self.save()
@@ -116,17 +129,20 @@ class UserDB(pd.DataFrame):
         await self.save()
         await Bot.get_current().send_message(user_id, 'New session added')
 
-    def _is_userid_exists(self):
+    def _is_userid_exists(self, user_id=None):
         """
         Check if userid exists
         :return:
         """
+        if not user_id:
+            user_id, _ = self._get_user()
+
         users_id = self.loc[:, 'user_id'].values
         if types.User.get_current().id in users_id:
             return True
         return False
 
-    def _is_session_exists(self, api, api_key):
+    def _is_session_exists(self, api=None, api_key=None):
         """
         Check if session exists
         :param api:
@@ -134,21 +150,23 @@ class UserDB(pd.DataFrame):
         :return:
         """
         user_id = types.User.get_current().id
-
         sessions = self.loc[self['user_id'] == user_id, 'sessions'].values[0]
-        for session in sessions:
-            if session.api_key == api_key and session.api == api:
-                return True
-            return False
 
-    async def _is_new_user(self):
+        if api and api_key:
+            for session in sessions:
+                if session.api_key == api_key and session.api == api:
+                    return True
+                return False
+        else:
+            return True if len(sessions) != 0 else False
+
+    async def is_new_user(self, user_id=None, username=None):
         """
         Check if user is new.
         :return:
         """
-        user = types.User.get_current()
-        user_id = user.id
-        username = user.username
+        if not user_id or not username:
+            user_id, username = self._get_user()
 
         if self.index.to_list():
             if user_id in self['user_id'].values and username in self['username'].values:
@@ -170,8 +188,8 @@ class UserDB(pd.DataFrame):
         :param s_key:
         :return:
         """
-        if await self._is_new_user():
-            self._add_user()
+        if await self.is_new_user():
+            await self.add_user()
             session = bnnc.Session(api, api_key, s_key)
             await self._add_session(session)
         else:

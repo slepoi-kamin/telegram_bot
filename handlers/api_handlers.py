@@ -2,8 +2,9 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
 
-from base import dp, user_db
-from keyboards import keyboards
+from base import dp, user_db, bot
+from conf import admin_id
+from keyboards import keyboards, request_keyboard
 
 
 class API(StatesGroup):
@@ -14,8 +15,14 @@ class API(StatesGroup):
 
 @dp.message_handler(commands='session', state='*')
 async def api_step_1(message: types.Message):
-    await message.answer("Выберите API:", reply_markup=keyboards['api_keyboard'])
-    await API.next()
+    if await user_db.is_new_user():
+        user = types.User.get_current()
+        await bot.send_message(admin_id, 'New request:', reply_markup=request_keyboard(user.id, user.username))
+        await message.answer('Your request has been sent to the administrator.\n'
+                             'Please wait for approval.')
+    else:
+        await message.answer("Выберите API:", reply_markup=keyboards['api_keyboard'])
+        await API.next()
 
 
 @dp.message_handler(state=API.api)
