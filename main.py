@@ -4,11 +4,9 @@ from aiogram.utils.executor import start_webhook
 
 import base
 from base import bot
-from base import dp
 from conf import admin_id, WEBHOOK_PATH, WEBHOOK_URL, WEBAPP_HOST, WEBAPP_PORT
 
-import handlers
-
+from handlers import dp
 
 async def on_startup(dp):
     await bot.set_webhook(WEBHOOK_URL)

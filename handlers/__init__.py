@@ -1,4 +1,7 @@
-from . import api_handlers
-from . import trade_state_handlers
-from . import commands_handlers
-from . import general_handlers
+
+from .api_handlers import dp
+from .trade_state_handlers import dp
+from .commands_handlers import dp
+from .general_handlers import dp
+
+__all__ = ['dp']
