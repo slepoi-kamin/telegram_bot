@@ -1,8 +1,11 @@
+from typing import Any, Union
+
 import pandas as pd
 from pathlib import Path
 import pickle
 import numpy as np
 from awaits.awaitable import awaitable
+import typing
 
 import bnnc
 from aiogram import types, Bot
@@ -11,7 +14,7 @@ from conf import admin_id
 
 
 class UserDB(pd.DataFrame):
-    db_file = Path('user_db.txt')
+    db_file: Union[Path, Any] = Path('user_db.txt')
 
     def __init__(self):
         if self.db_file.exists():
@@ -32,14 +35,23 @@ class UserDB(pd.DataFrame):
         await Bot.get_current().send_message(admin_id, f'The User Database have been cleared')
 
     @awaitable
-    def save(self):
+    def save(self, fname: Union[Path, Any] = None):
         """
         Save database to .txt
         :return:
         """
-        file = open(self.db_file, 'wb')
+        if fname:
+            # noinspection PyTypeChecker
+            file = open(fname, 'wb')
+        else:
+            file = open(self.db_file, 'wb')
         pickle.dump(self, file)
         file.close()
+
+    async def backup(self):
+        if self.db_file.exists():
+            await self.save(Path(self.db_file.name.split('.')[0] + '.bckp'))
+            await Bot.get_current().send_message(admin_id, 'User database backup has been done.')
 
     def load(self):
         """

@@ -24,13 +24,18 @@ async def decline_user(message: types.Message):
 
 
 @dp.message_handler(user_id=admin_id, commands=['clear_db'])
-async def add_user(message: types.Message):
+async def clear_db(message: types.Message):
     await user_db.clear()
 
 
 @dp.message_handler(user_id=admin_id, commands=['clear_blacklist'])
-async def add_user(message: types.Message):
+async def clear_blacklist(message: types.Message):
     blacklist.clear()
+
+
+@dp.message_handler(user_id=admin_id, commands=['backup_db'])
+async def backup_db(message: types.Message):
+    await user_db.backup()
 
 
 @dp.message_handler(user_id=admin_id, commands=['start', 'help'])
@@ -42,5 +47,6 @@ async def starthelp(message: types.Message):
                    '/session - Поключить/добавить API\n' \
                    '/clear_db - Отчистить базу пользователей\n' \
                    '/clear_blacklist - Отчистить черный список\n' \
+                   '/backup_db - Бекап базы данных\n' \
                    '/add_user user_id username - Добавить пользователя'
     await message.answer(message_text, reply_markup=keyboards['common_keyboard'])
