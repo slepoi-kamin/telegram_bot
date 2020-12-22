@@ -115,17 +115,20 @@ class UserDB(pd.DataFrame):
         bot = Bot.get_current()
         user_id = types.User.get_current().id
         if self._is_userid_exists() and self._is_session_exists():
-            if isinstance(state, bool):
+            if isinstance(state, bool) or state == 'test':
                 self.loc[self['user_id'] == user_id, 'state'] = state
                 await self.save()
-                text = 'Start trading' if state else 'Stop trading'
+                text = ('Test trading' if state == 'test' else 'Start trading') if state else 'Stop trading'
                 await bot.send_message(user_id, text)
             else:
-                raise TypeError(f'state variable should be bool, not {type(state)}')
+                raise TypeError(f'state variable should be bool or \'test\', not {type(state)}')
         else:
             # print('At first you should add API')
             await bot.send_message(user_id, 'At first you should add API')
             pass
+
+    async def test_state(self):
+        await self._set_state('test')
 
     async def set_state(self):
         await self._set_state(True)

@@ -27,5 +27,6 @@ async def starthelp(message: types.Message):
                    '/session - Создание сесии для API\n' \
                    '/start_trade - Начать торговлю\n' \
                    '/stop_trade - Закончить торговлю\n' \
+                   '/test_trade - Тестовый режим\n' \
                    '/session - Поключить/добавить API'
     await bot.send_message(message.chat.id, message_text, reply_markup=keyboards['common_keyboard'])
