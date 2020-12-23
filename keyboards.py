@@ -1,8 +1,8 @@
 from aiogram import types
 
 buttons = {
-    'binance': types.KeyboardButton('binance'),
-    'bitmex': types.KeyboardButton('bitmex'),
+    'binance': types.KeyboardButton('BINANCE'),
+    'bitmex': types.KeyboardButton('BITMEX'),
     'session': types.KeyboardButton('/session'),
     'start_trading': types.KeyboardButton('/start_trade'),
     'stop_trading': types.KeyboardButton('/stop_trade'),

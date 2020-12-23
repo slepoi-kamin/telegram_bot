@@ -38,10 +38,10 @@ class UserDB(pd.DataFrame):
     def save(self, fname: Union[Path, Any] = None):
         """
         Save database to .txt
+        :type fname: Union[Path, Any]
         :return:
         """
         if fname:
-            # noinspection PyTypeChecker
             file = open(fname, 'wb')
         else:
             file = open(self.db_file, 'wb')
@@ -70,7 +70,7 @@ class UserDB(pd.DataFrame):
         if not user_id or not username:
             user_id, username = self._get_user()
 
-        if self._is_userid_exists():
+        if self._is_userid_exists(user_id):
             await Bot.get_current().send_message(admin_id, f'ERROR: user with user_id {user_id} already exists')
         else:
             user_dict = {'user_id': user_id,
@@ -158,23 +158,29 @@ class UserDB(pd.DataFrame):
             user_id, _ = self._get_user()
 
         users_id = self.loc[:, 'user_id'].values
-        if types.User.get_current().id in users_id:
+        if user_id in users_id:
             return True
         return False
 
-    def _is_session_exists(self, api=None, api_key=None):
+    def _is_session_exists(self, api=None, api_key=None, user_id=None):
         """
         Check if session exists
         :param api:
         :param api_key:
         :return:
         """
-        user_id = types.User.get_current().id
+        if not user_id:
+            user_id = types.User.get_current().id
         sessions = self.loc[self['user_id'] == user_id, 'sessions'].values[0]
 
         if api and api_key:
             for session in sessions:
                 if session.api_key == api_key and session.api == api:
+                    return True
+                return False
+        elif api and not api_key:
+            for session in sessions:
+                if  session.api == api:
                     return True
                 return False
         else:
@@ -185,11 +191,13 @@ class UserDB(pd.DataFrame):
         Check if user is new.
         :return:
         """
-        if not user_id or not username:
+        if not user_id and not username:
             user_id, username = self._get_user()
 
         if self.index.to_list():
-            if user_id in self['user_id'].values and username in self['username'].values:
+            if user_id not in self['user_id'].values and not username:
+                return True
+            elif user_id in self['user_id'].values and username in self['username'].values:
                 return False
             elif user_id in self['user_id'].values or username in self['username'].values:
                 await Bot.get_current().send_message(user_id, 'ERROR: user_id don\'t match username')
@@ -219,6 +227,40 @@ class UserDB(pd.DataFrame):
             bot = Bot.get_current()
             user_id = types.User.get_current().id
             await bot.send_message(user_id, 'Session already exists')
+
+    def _get_session(self, api, user_id=None):
+        if not user_id:
+            user_id = types.User.get_current().id
+        sessions = self.loc[self['user_id'] == user_id, 'sessions'].values[0]
+        for session in sessions:
+            if session.api == api:
+                return session
+
+    def _check_kwargs(self, user_id, **kwargs):
+        exchange = kwargs['exchange']
+        if self._is_session_exists(api=exchange, user_id=user_id):
+            session = self._get_session(exchange, user_id=user_id)
+        else:
+            session = None
+
+        new_kwargs = {}
+        if 'PERP' in kwargs['symbol']:
+            new_kwargs['symbol'] = kwargs['symbol'].replace('PERP', '')
+        else:
+            new_kwargs['symbol'] = kwargs['symbol']
+        new_kwargs['side'] = kwargs['side']
+        new_kwargs['quantity'] = kwargs['quantity']
+        new_kwargs['type'] = 'MARKET'
+
+        return session, new_kwargs
+
+    async def create_order(self, user_id,  **kwargs):
+        session, kwargs = self._check_kwargs(user_id, **kwargs)
+        if session and self.get_state() == 'test':
+            await session.test_order(**kwargs)
+        elif session and self.get_state():
+            await session.test_order(**kwargs)
+
 
 
 if __name__ == '__main__':
