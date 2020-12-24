@@ -208,7 +208,7 @@ class UserDB(pd.DataFrame):
             for session in sessions:
                 if session.api == api:
                     return True
-                return False
+            return False
         else:
             return True if len(sessions) != 0 else False
 
@@ -311,6 +311,7 @@ class UserDB(pd.DataFrame):
         return session, new_kwargs
 
     async def create_order(self, user_id,  **kwargs):
+        api_name = kwargs["exchange"]
         session, kwargs = self._check_kwargs(user_id, **kwargs)
         if session:
             if self._get_state(user_id) == 'test':
@@ -318,7 +319,7 @@ class UserDB(pd.DataFrame):
             elif self._get_state(user_id):
                 await session.create_order(user_id, **kwargs)
         else:
-            await Bot.get_current().send_message(user_id, f'There are no sessions with API {kwargs["exchange"]}')
+            await Bot.get_current().send_message(user_id, f'There are no sessions with API {api_name}')
 
 
 if __name__ == '__main__':
