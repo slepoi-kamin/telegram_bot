@@ -11,6 +11,7 @@ import bnnc
 from aiogram import types, Bot
 
 from conf import admin_id
+from keyboards import keyboards
 
 
 class UserDB(pd.DataFrame):
@@ -70,8 +71,10 @@ class UserDB(pd.DataFrame):
         if not user_id or not username:
             user_id, username = self._get_user()
 
-        if self._is_userid_exists(user_id):
-            await Bot.get_current().send_message(admin_id, f'ERROR: user with user_id {user_id} already exists')
+        if self.is_userid_exists(user_id):
+            await Bot.get_current().send_message(admin_id,
+                                                 f'ERROR: user with user_id {user_id} already exists',
+                                                 reply_markup=keyboards['common_keyboard'])
         else:
             user_dict = {'user_id': user_id,
                          'username': username,
@@ -81,30 +84,40 @@ class UserDB(pd.DataFrame):
             data = np.array(list(user_dict.values()), dtype=object)
             self.loc[ind] = data
             await self.save()
-            await Bot.get_current().send_message(admin_id, f'New user id: {user_id}, '
-                                                           f'name:{username} added to the database')
+            await Bot.get_current().send_message(admin_id,
+                                                 f'New user id: {user_id}, '
+                                                 f'name:{username} added to the database',
+                                                 reply_markup=keyboards['common_keyboard'])
 
-    def _get_user(self):
+    @staticmethod
+    def _get_user():
         user = types.User.get_current()
         user_id = user.id
         username = user.username
         return user_id, username
 
-    def get_state(self, all_users=False):
+    def _get_state(self, user_id=None):
+        if not user_id:
+            user_id = types.User.get_current().id
+
+        if self.is_userid_exists(user_id):
+            return self.loc[self['user_id'] == user_id, 'state'].values[0]
+        else:
+            return None
+
+    def get_state(self, user_id=None):
         """
         Get user state
         :param all_users:
         :return:
         """
-        if not all_users:
+        if not user_id:
             user_id = types.User.get_current().id
-            if self._is_userid_exists():
-                return self.loc[self['user_id'] == user_id, 'state'].values[0]
-            else:
-                return None
-                # raise ValueError(f'There are no such user_id: |{user_id}| in database')
-        else:
+
+        if user_id == 'all':
             return self.loc[:, ['user_id', 'username', 'state']]
+        else:
+            return self._get_state(user_id)
 
     async def _set_state(self, state):
         """
@@ -114,7 +127,7 @@ class UserDB(pd.DataFrame):
         """
         bot = Bot.get_current()
         user_id = types.User.get_current().id
-        if self._is_userid_exists() and self._is_session_exists():
+        if self.is_userid_exists() and self._is_session_exists():
             if isinstance(state, bool) or state == 'test':
                 self.loc[self['user_id'] == user_id, 'state'] = state
                 await self.save()
@@ -149,7 +162,7 @@ class UserDB(pd.DataFrame):
         await self.save()
         await Bot.get_current().send_message(user_id, 'New session added')
 
-    def _is_userid_exists(self, user_id=None):
+    def is_userid_exists(self, user_id=None):
         """
         Check if userid exists
         :return:
@@ -159,6 +172,19 @@ class UserDB(pd.DataFrame):
 
         users_id = self.loc[:, 'user_id'].values
         if user_id in users_id:
+            return True
+        return False
+
+    def _is_username_exists(self, username=None):
+        """
+        Check if userid exists
+        :return:
+        """
+        if not username:
+            user_id, _ = self._get_user()
+
+        usernames = self.loc[:, 'username'].values
+        if username in usernames:
             return True
         return False
 
@@ -180,7 +206,7 @@ class UserDB(pd.DataFrame):
                 return False
         elif api and not api_key:
             for session in sessions:
-                if  session.api == api:
+                if session.api == api:
                     return True
                 return False
         else:
@@ -191,17 +217,15 @@ class UserDB(pd.DataFrame):
         Check if user is new.
         :return:
         """
-        if not user_id and not username:
+        if not user_id or not username:
             user_id, username = self._get_user()
 
         if self.index.to_list():
-            if user_id not in self['user_id'].values and not username:
-                return True
-            elif user_id in self['user_id'].values and username in self['username'].values:
+            if self.is_userid_exists(user_id) and self._is_username_exists(username):
                 return False
-            elif user_id in self['user_id'].values or username in self['username'].values:
+            elif self.is_userid_exists(user_id) or self._is_username_exists(username):
                 await Bot.get_current().send_message(user_id, 'ERROR: user_id don\'t match username')
-            elif user_id not in self['user_id'].values and username not in self['username'].values:
+            elif not self.is_userid_exists(user_id) and not self._is_username_exists(username):
                 return True
             else:
                 raise ValueError('something with user_id and username')
@@ -228,26 +252,58 @@ class UserDB(pd.DataFrame):
             user_id = types.User.get_current().id
             await bot.send_message(user_id, 'Session already exists')
 
+    def _get_sessions_list(self, user_id=None):
+        if not user_id:
+            user_id, _ = self._get_user()
+
+        if self._is_session_exists(user_id=user_id):
+            return self.loc[self['user_id'] == user_id, 'sessions'].values[0]
+        else:
+            return None
+
+    async def del_session(self, api, user_id=None):
+        if not user_id:
+            user_id, _ = self._get_user()
+        session = self._get_session(api, user_id=user_id)
+        if session:
+            sessions = self._get_sessions_list(user_id)
+            sessions.pop(sessions.index(session))
+            await Bot.get_current().send_message(user_id, f'API session has been deleted.')
+            await self.get_sessions_list(user_id)
+        else:
+            await Bot.get_current().send_message(user_id, f'There are no existing API sessions.')
+
+    async def get_sessions_list(self, user_id=None):
+        if not user_id:
+            user_id, _ = self._get_user()
+
+        sessions = self._get_sessions_list(user_id)
+        if sessions:
+            str_sessions = ''.join(list(map(lambda ses: '\n' + str(ses.api), sessions)))
+            await Bot.get_current().send_message(user_id, f'Existing API sessions list: {str_sessions}')
+        else:
+            await Bot.get_current().send_message(user_id, f'There are no existing API sessions.')
+
     def _get_session(self, api, user_id=None):
         if not user_id:
             user_id = types.User.get_current().id
-        sessions = self.loc[self['user_id'] == user_id, 'sessions'].values[0]
-        for session in sessions:
-            if session.api == api:
-                return session
+        if self._is_session_exists(api=api, user_id=user_id):
+            sessions = self.loc[self['user_id'] == user_id, 'sessions'].values[0]
+            for session in sessions:
+                if session.api == api:
+                    return session
+        return None
 
     def _check_kwargs(self, user_id, **kwargs):
         exchange = kwargs['exchange']
-        if self._is_session_exists(api=exchange, user_id=user_id):
-            session = self._get_session(exchange, user_id=user_id)
-        else:
-            session = None
+        session = self._get_session(exchange, user_id=user_id)
 
-        new_kwargs = {}
+        new_kwargs = {}  # Create dict with kwargs for order
         if 'PERP' in kwargs['symbol']:
             new_kwargs['symbol'] = kwargs['symbol'].replace('PERP', '')
         else:
             new_kwargs['symbol'] = kwargs['symbol']
+
         new_kwargs['side'] = kwargs['side']
         new_kwargs['quantity'] = kwargs['quantity']
         new_kwargs['type'] = 'MARKET'
@@ -256,11 +312,13 @@ class UserDB(pd.DataFrame):
 
     async def create_order(self, user_id,  **kwargs):
         session, kwargs = self._check_kwargs(user_id, **kwargs)
-        if session and self.get_state() == 'test':
-            await session.test_order(**kwargs)
-        elif session and self.get_state():
-            await session.test_order(**kwargs)
-
+        if session:
+            if self._get_state(user_id) == 'test':
+                await session.test_order(user_id, **kwargs)
+            elif self._get_state(user_id):
+                await session.create_order(user_id, **kwargs)
+        else:
+            await Bot.get_current().send_message(user_id, f'There are no sessions with API {kwargs["exchange"]}')
 
 
 if __name__ == '__main__':

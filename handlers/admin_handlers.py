@@ -44,6 +44,9 @@ async def starthelp(message: types.Message):
                    '/help - Справка по командам бота\n' \
                    '/start_trade - Начать торговлю\n' \
                    '/stop_trade - Закончить торговлю\n' \
+                   '/test_trade - Тестовый режим\n' \
+                   '/del_session API_name - Удалить сессию API\n' \
+                   '/sessions_list - Список сессий\n' \
                    '/session - Поключить/добавить API\n' \
                    '/clear_db - Отчистить базу пользователей\n' \
                    '/clear_blacklist - Отчистить черный список\n' \

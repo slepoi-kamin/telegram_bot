@@ -26,9 +26,10 @@ async def generate(message: types.Message):
 async def starthelp(message: types.Message):
     message_text = '/gen - Генерация выражения для создания оповещения в TW\n' \
                    '/help - Справка по командам бота\n' \
-                   '/session - Создание сесии для API\n' \
                    '/start_trade - Начать торговлю\n' \
                    '/stop_trade - Закончить торговлю\n' \
                    '/test_trade - Тестовый режим\n' \
+                   '/del_session API_name - Удалить сессию API\n'\
+                   '/sessions_list - Список сессий\n' \
                    '/session - Поключить/добавить API'
     await bot.send_message(message.chat.id, message_text, reply_markup=keyboards['common_keyboard'])
