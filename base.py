@@ -12,7 +12,6 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s',
                     level=logging.INFO)
 
-
 bot = Bot(token=API_TOKEN)
 
 storage = PickleStorage(Path('states.txt'))

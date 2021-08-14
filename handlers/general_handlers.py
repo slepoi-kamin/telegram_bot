@@ -8,8 +8,7 @@ async def echo3(text):
     if 'type' in text.values.keys() and text.values['type'] == 'tr_view':
         user_id = int(text.chat.id)
         if user_db.is_userid_exists(user_id=user_id):
-            await bot.send_message(text.chat.id, f'{text.text}',
-                                   parse_mode=types.ParseMode.HTML)
+            await bot.send_message(text.chat.id, f'{text.text}')
 
             if 'trade' in text.values.keys():
                 exchange = str(text.values['exchange']).upper()
