@@ -1,0 +1,7 @@
+temp_some_trash/
+venv/
+
+.env
+.idea/
+__pycache__/
+handlers/__pycache__/

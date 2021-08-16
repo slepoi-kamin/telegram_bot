@@ -34,18 +34,6 @@ async def generate(message: types.Message):
     :return:
     """
 
-    # message_text = '{"channel_post": {' \
-    #                '"type": "tr_view", ' \
-    #                '"exchange": "{{exchange}}",' \
-    #                '"chat": {"id": "' + f'{message.chat.id}' + '"},' \
-    #                '"text": "{{strategy.order.action}} @ {{strategy.order.contracts}} исполнилась по {{ticker}}. Новая позиция стратегии {{strategy.position_size}}",' \
-    #                '"trade": {' \
-    #                '"side": "{{strategy.order.action}}",' \
-    #                '"symbol": "{{ticker}}",' \
-    #                '"quantity": "{{strategy.order.contracts}}",' \
-    #                '"price": "{{strategy.order.price}}",' \
-    #                '"type": "{{strategy.order.comment}}"}}}'
-
     message_text = '{' \
                    '"message": {' \
                    '"from": {' \

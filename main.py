@@ -4,13 +4,14 @@ from aiogram.utils.executor import start_webhook
 
 import base
 from base import bot
-from conf import admin_id, WEBHOOK_PATH, WEBHOOK_URL, WEBAPP_HOST, WEBAPP_PORT
+from conf import ADMIN_ID, WEBHOOK_PATH, WEBHOOK_URL, WEBAPP_HOST, WEBAPP_PORT
 
 from handlers import dp
 
+
 async def on_startup(dp):
     await bot.set_webhook(WEBHOOK_URL)
-    await bot.send_message(admin_id, "Я запущен!")
+    await bot.send_message(ADMIN_ID, "Я запущен!")
     # await bot.send_message(message.chat.id, 'Ты  полный лох', reply_markup=types.ReplyKeyboardRemove())
     # insert code here to run it after start
 

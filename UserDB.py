@@ -10,7 +10,7 @@ import typing
 import bnnc
 from aiogram import types, Bot
 
-from conf import admin_id
+from conf import ADMIN_ID
 from keyboards import keyboards
 
 
@@ -33,7 +33,7 @@ class UserDB(pd.DataFrame):
     async def clear(self):
         self._create_new()
         await self.save()
-        await Bot.get_current().send_message(admin_id, f'The User Database have been cleared')
+        await Bot.get_current().send_message(ADMIN_ID, f'The User Database have been cleared')
 
     @awaitable
     def save(self, fname: Union[Path, Any] = None):
@@ -52,7 +52,7 @@ class UserDB(pd.DataFrame):
     async def backup(self):
         if self.db_file.exists():
             await self.save(Path(self.db_file.name.split('.')[0] + '.bckp'))
-            await Bot.get_current().send_message(admin_id, 'User database backup has been done.')
+            await Bot.get_current().send_message(ADMIN_ID, 'User database backup has been done.')
 
     def load(self):
         """
@@ -72,7 +72,7 @@ class UserDB(pd.DataFrame):
             user_id, username = self._get_user()
 
         if self.is_userid_exists(user_id):
-            await Bot.get_current().send_message(admin_id,
+            await Bot.get_current().send_message(ADMIN_ID,
                                                  f'ERROR: user with user_id {user_id} already exists',
                                                  reply_markup=keyboards['common_keyboard'])
         else:
@@ -84,7 +84,7 @@ class UserDB(pd.DataFrame):
             data = np.array(list(user_dict.values()), dtype=object)
             self.loc[ind] = data
             await self.save()
-            await Bot.get_current().send_message(admin_id,
+            await Bot.get_current().send_message(ADMIN_ID,
                                                  f'New user id: {user_id}, '
                                                  f'name:{username} added to the database',
                                                  reply_markup=keyboards['common_keyboard'])
@@ -323,14 +323,4 @@ class UserDB(pd.DataFrame):
 
 
 if __name__ == '__main__':
-    a = UserDB()
-    a.create_session('binance', 'jdso98u9dsa', 'jdfdojodsoi88')
-    a.create_session('binance', 'jddfdsfdssa', 'jdfdojodsoi88')
-    a.create_session('bitmax', 'jddfdsssa', 'jdfdojodsoi88')
-    a.create_session('bitmax', 'jddfdsssa', 'jdfdojodsoi88')
-    a.get_state(123)
-    a.get_state()
-    a.set_state(123, True)
-    a.set_state(1234, False)
-    a.save()
-    b = UserDB()
+    pass
