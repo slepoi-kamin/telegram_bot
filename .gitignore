@@ -1,5 +1,9 @@
 temp_some_trash/
 venv/
+pytest_cache/
+tests/.pytest_cache
+states.txt
+user_db.txt
 
 .env
 .idea/
