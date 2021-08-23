@@ -9,3 +9,4 @@ user_db.txt
 .idea/
 __pycache__/
 handlers/__pycache__/
+.coverage
